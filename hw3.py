@@ -10,10 +10,10 @@ class personalMethods:
 
     def __init__(self):
         self.numberOfInstructions = 0
-        self.minOut = 0
-        self.maxOut = 250
         self.outputString = ""
         self.cpuCounter = 0
+        self.minArrivaltime = 0
+        self.queue = []
 
     def exit(self):
         print("\n\nExiting script")
@@ -36,25 +36,16 @@ class personalMethods:
                 instructions.append(tempInstruction)
         return instructions
 
-    def preemptive(self, arrOfInstructions):
-        arrivalTimes = []
-        burstTimes = []
-        for instruction in arrOfInstructions:
-            arrivalTimes.append(instruction.arrivalTime)
-            burstTimes.append(instruction.burstDuration)
-        self.maxOut = max(arrivalTimes) + max(burstTimes)
-        self.determineNextInstruction(arrivalTimes)
-
     def determineNextInstruction(self, arrayOfInstructions) -> (int, int):
         arrivalTimesArray = []
         priorityArray = []
+
         for time in arrayOfInstructions:
             arrivalTimesArray.append(time.arrivalTime)
             priorityArray.append(time.priority)
         print("\narrivalTimesArray[] is : ", arrivalTimesArray)
         print("priorityArray[] is : ", priorityArray)
         val, atIndex = min((val, atIndex) for (atIndex, val) in enumerate(arrivalTimesArray))
-        self.minOut = val
 
         print("value is: ", val)
         print("atIndex: ", atIndex)
@@ -64,11 +55,12 @@ class personalMethods:
 
     def fire(self, Instruction, quartus) -> int:
         burstDuration = int(Instruction.burstDuration)
+        print("starting at cpu time: ", self.minArrivaltime)
         if int(Instruction.burstDuration) <= quartus:
             for x in range (1, int(Instruction.burstDuration)):
                 print("ins(",Instruction.instructionName,")", end='')
                 burstDuration -= 1
-                self.cpuCounter += 1
+                self.cpuCounter = int(self.cpuCounter) + 1
             print("completed")
 
         else:
@@ -77,9 +69,21 @@ class personalMethods:
                 # print("ins(",Instruction.instructionName,")", end=' | ')
                 print(self.outputString)
                 burstDuration -= 1
-                self.cpuCounter += 1
+                self.cpuCounter = int(self.cpuCounter) + 1
+        print("Ending at cpu time: ", (self.cpuCounter))
         return burstDuration
 
+    def orderQueue(self, queue) -> []:
+        self.queue = sorted(queue, key=lambda  queue: queue.priority)
+        return self.queue
+
+    def startingCPUTime(self, instructions):
+        arrivalTimesArray = []
+        for time in instructions:
+            arrivalTimesArray.append(time.arrivalTime)
+        val, atIndex = min((val, atIndex) for (atIndex, val) in enumerate(arrivalTimesArray))
+        self.minArrivaltime = val
+        self.cpuCounter = val
 
 if __name__ == '__main__':
     #INITIALIZE
@@ -106,9 +110,9 @@ if __name__ == '__main__':
             print("Not a valid input")
         '''
         instructions = personalMethods.processInput(userAction)
-
+        personalMethods.startingCPUTime(instructions)
         for x in range (0, int(personalMethods.numberOfInstructions)):
-            index, doNextIntRepresentaiton = personalMethods.determineNextInstruction(instructions)
+            index, doNextIntRepresentaiton = personalMethods.determineNextInstruction(instructions, queue)
             newBurstDuration = personalMethods.fire(instructions[doNextIntRepresentaiton], quartus)
             if newBurstDuration != 0:
                 instructions[doNextIntRepresentaiton].burstDuration = newBurstDuration
@@ -117,6 +121,10 @@ if __name__ == '__main__':
                 print("\nQueue is now: ")
                 for q in queue:
                     print("ins(",q.instructionName,") with remaining burst time --> ",q.burstDuration," and PRIORITY --> ",q.priority)
+                queue = personalMethods.orderQueue(queue)
+                print("Queue is reordered: ")
+                for q in queue:
+                    print("ins(",q.instructionName,")")
                 instructions.remove(instructions[doNextIntRepresentaiton])
 
         print("The CPU counter is at: ", personalMethods.cpuCounter)
